@@ -23,7 +23,10 @@ except ImportError:
 # ─── Security ─────────────────────────────────────────────────────────────────
 SECRET_KEY    = os.environ.get('SECRET_KEY', 'lakshmi-crackers-dev-secret-key-change-in-prod')
 DEBUG         = os.environ.get('DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
+# Render sets RENDER_EXTERNAL_HOSTNAME automatically
+_render_host = os.environ.get('RENDER_EXTERNAL_HOSTNAME', '')
+_allowed     = os.environ.get('ALLOWED_HOSTS', '*')
+ALLOWED_HOSTS = list(filter(None, _allowed.split(',') + ([_render_host] if _render_host else [])))
 
 # ─── Applications ─────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
@@ -49,6 +52,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # serve static files on Render
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -136,8 +140,10 @@ CORS_ALLOW_ALL_ORIGINS = True   # Tighten in production
 CORS_ALLOW_CREDENTIALS = True
 
 # ─── Static & Media ───────────────────────────────────────────────────────────
-STATIC_URL  = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATIC_URL   = '/static/'
+STATIC_ROOT  = BASE_DIR / 'staticfiles'
+# WhiteNoise — serve compressed static files efficiently on Render
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL   = '/media/'
 MEDIA_ROOT  = BASE_DIR / 'media'
 
