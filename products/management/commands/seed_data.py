@@ -8,17 +8,22 @@ from products.models import Category, Product
 from orders.models import Coupon
 
 CATEGORIES = [
-    {'name': 'Single Sound Crackers', 'icon': '💣', 'slug': 'single-sound'},
-    {'name': 'Flower Pots',           'icon': '🌸', 'slug': 'flower-pots'},
-    {'name': 'Ground Chakkar',        'icon': '🌀', 'slug': 'ground'},
-    {'name': 'Rockets',               'icon': '🚀', 'slug': 'rockets'},
-    {'name': 'Fountains',             'icon': '⛲', 'slug': 'fountains'},
-    {'name': 'Sky Shots',             'icon': '🎆', 'slug': 'sky-shots'},
-    {'name': 'Repeating Skyshots',    'icon': '🎇', 'slug': 'repeating-skyshots'},
-    {'name': 'Kids Special',          'icon': '🎈', 'slug': 'kids-special'},
-    {'name': 'Sparklers',             'icon': '✨', 'slug': 'sparklers'},
-    {'name': 'Gift Boxes',            'icon': '🎁', 'slug': 'gift-boxes'},
-    {'name': 'Combo Packs',           'icon': '🎆', 'slug': 'combo-packs'},
+    {'name': 'One Sound Crackers', 'icon': '💥', 'slug': 'one-sound'},
+    {'name': 'Wala Items',         'icon': '🎵', 'slug': 'wala-items'},
+    {'name': 'Bomb',               'icon': '💣', 'slug': 'bomb'},
+    {'name': 'Flower Pots',        'icon': '🌸', 'slug': 'flower-pots'},
+    {'name': 'Ground Chakkar',     'icon': '🌀', 'slug': 'ground'},
+    {'name': 'Candles',            'icon': '🕯️', 'slug': 'candles'},
+    {'name': 'Rockets',            'icon': '🚀', 'slug': 'rockets'},
+    {'name': 'Fountains',          'icon': '⛲', 'slug': 'fountains'},
+    {'name': 'Showers',            'icon': '🌟', 'slug': 'showers'},
+    {'name': 'Premium Products',   'icon': '👑', 'slug': 'premium-products'},
+    {'name': 'Sky Shots',          'icon': '🎆', 'slug': 'sky-shots'},
+    {'name': 'Repeating Skyshots', 'icon': '🎇', 'slug': 'repeating-skyshots'},
+    {'name': 'Sparklers',          'icon': '✨', 'slug': 'sparklers'},
+    {'name': 'Matches',            'icon': '🔥', 'slug': 'matches'},
+    {'name': 'Gift Boxes',         'icon': '🎁', 'slug': 'gift-boxes'},
+    {'name': 'Combo Items',        'icon': '🎊', 'slug': 'combo-packs'},
 ]
 
 PRODUCTS = [
@@ -30,8 +35,8 @@ PRODUCTS = [
     {'name': 'Thunder Rocket',             'category': 'rockets',             'price': 180,  'original_price': 220,  'stock': 60,  'featured': False, 'image_url': 'https://images.unsplash.com/photo-1533922922960-9fceb9ef4733?w=400'},
     {'name': 'Classic Flower Pot',         'category': 'flower-pots',         'price': 90,   'original_price': 120,  'stock': 150, 'featured': True, 'image_url': 'https://images.unsplash.com/photo-1467810563316-b5476525c0f9?w=400'},
     {'name': 'Giant Flower Pot',           'category': 'flower-pots',         'price': 200,  'original_price': 260,  'stock': 70,  'featured': False, 'image_url': 'https://images.unsplash.com/photo-1467810563316-b5476525c0f9?w=400'},
-    {'name': 'Atom Bomb',                  'category': 'single-sound',        'price': 100,  'original_price': 130,  'stock': 200, 'featured': False, 'image_url': 'https://images.unsplash.com/photo-1516912481808-3406841bd33c?w=400'},
-    {'name': 'Laxmi Bomb Box of 10',       'category': 'single-sound',        'price': 60,   'original_price': 80,   'stock': 400, 'featured': True, 'image_url': 'https://images.unsplash.com/photo-1516912481808-3406841bd33c?w=400'},
+    {'name': 'Atom Bomb',                  'category': 'one-sound',        'price': 100,  'original_price': 130,  'stock': 200, 'featured': False, 'image_url': 'https://images.unsplash.com/photo-1516912481808-3406841bd33c?w=400'},
+    {'name': 'Laxmi Bomb Box of 10',       'category': 'one-sound',        'price': 60,   'original_price': 80,   'stock': 400, 'featured': True, 'image_url': 'https://images.unsplash.com/photo-1516912481808-3406841bd33c?w=400'},
     {'name': 'Multi-Color Sky Shot',       'category': 'sky-shots',           'price': 350,  'original_price': 450,  'stock': 50,  'featured': True, 'image_url': 'https://images.unsplash.com/photo-1533922922960-9fceb9ef4733?w=400'},
     {'name': '7-Shot Sky Cracker',         'category': 'sky-shots',           'price': 500,  'original_price': 650,  'stock': 40,  'featured': True, 'image_url': 'https://images.unsplash.com/photo-1533922922960-9fceb9ef4733?w=400'},
     {'name': 'Diwali Gift Box Small',      'category': 'gift-boxes',          'price': 799,  'original_price': 999,  'stock': 30,  'featured': True, 'image_url': 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=400'},
@@ -39,7 +44,7 @@ PRODUCTS = [
     {'name': 'Rainbow Fountain',           'category': 'fountains',           'price': 140,  'original_price': 180,  'stock': 90,  'featured': False, 'image_url': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400'},
     {'name': 'Color Waterfall Fountain',   'category': 'fountains',           'price': 220,  'original_price': 280,  'stock': 60,  'featured': True, 'image_url': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400'},
     {'name': 'Repeating Sky Star',         'category': 'repeating-skyshots',  'price': 450,  'original_price': 580,  'stock': 35,  'featured': True, 'image_url': 'https://images.unsplash.com/photo-1533922922960-9fceb9ef4733?w=400'},
-    {'name': 'Butterfly Kids Pack',        'category': 'kids-special',        'price': 75,   'original_price': 100,  'stock': 250, 'featured': True, 'image_url': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400'},
+    {'name': 'Butterfly Kids Pack',        'category': 'showers',        'price': 75,   'original_price': 100,  'stock': 250, 'featured': True, 'image_url': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400'},
     {'name': 'Ground Chakkar Set',         'category': 'ground',              'price': 120,  'original_price': 150,  'stock': 180, 'featured': False, 'image_url': 'https://images.unsplash.com/photo-1467810563316-b5476525c0f9?w=400'},
     # ── Combo Packs ──
     {'name': 'Budget Blast Combo',          'category': 'combo-packs',         'price': 2999, 'original_price': 5000,  'stock': 50,  'featured': True,  'image_url': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400',
