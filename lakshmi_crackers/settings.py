@@ -42,6 +42,10 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
 
+    # Cloud storage
+    'cloudinary_storage',
+    'cloudinary',
+
     # Local apps
     'products',
     'orders',
@@ -146,6 +150,30 @@ STATIC_ROOT  = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL   = '/media/'
 MEDIA_ROOT  = BASE_DIR / 'media'
+
+# ─── Cloudinary — cloud image storage ────────────────────────────────────────
+# Images are uploaded to Cloudinary instead of local disk.
+# This survives Render restarts, redeploys, and ephemeral filesystem wipes.
+# Set CLOUDINARY_URL in Render environment variables.
+# Format: cloudinary://API_KEY:API_SECRET@CLOUD_NAME
+# Get free credentials at https://cloudinary.com (25 GB free)
+CLOUDINARY_URL = os.environ.get('CLOUDINARY_URL', '')
+
+if CLOUDINARY_URL:
+    # Use Cloudinary for all uploaded media files
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    import cloudinary
+    import urllib.parse
+    _parsed = urllib.parse.urlparse(CLOUDINARY_URL)
+    cloudinary.config(
+        cloud_name = _parsed.hostname,
+        api_key    = _parsed.username,
+        api_secret = _parsed.password,
+        secure     = True,
+    )
+else:
+    # Fallback: local disk (dev only — not reliable on Render free tier)
+    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 
 # ─── Email ────────────────────────────────────────────────────────────────────
 EMAIL_BACKEND       = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')

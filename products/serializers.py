@@ -72,13 +72,24 @@ class ProductListSerializer(serializers.ModelSerializer):
         ]
 
     def get_image(self, obj):
-        """Return absolute URL for uploaded image, or None if no image."""
+        """
+        Return image URL — works for both local disk and Cloudinary.
+        Cloudinary returns full https://res.cloudinary.com/... URLs directly.
+        Local disk returns a relative path which we prefix with BACKEND URL.
+        """
         if not obj.image:
             return None
+        try:
+            url = obj.image.url  # Cloudinary: full URL; local: /media/products/x.jpg
+        except Exception:
+            return None
+        # If already an absolute URL (Cloudinary), return as-is
+        if url.startswith('http://') or url.startswith('https://'):
+            return url
+        # Local disk — build absolute URL using request context
         request = self.context.get('request')
         if request:
-            return request.build_absolute_uri(obj.image.url)
-        # Fallback: build from MEDIA_URL setting
+            return request.build_absolute_uri(url)
         from django.conf import settings
         return f"{settings.MEDIA_URL}{obj.image.name}"
 
