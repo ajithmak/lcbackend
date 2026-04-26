@@ -24,6 +24,7 @@ CATEGORIES = [
     {'name': 'Matches',            'icon': '🔥', 'slug': 'matches'},
     {'name': 'Gift Boxes',         'icon': '🎁', 'slug': 'gift-boxes'},
     {'name': 'Combo Items',        'icon': '🎊', 'slug': 'combo-packs'},
+    {'name': 'Kids Special',         'icon': '🎈', 'slug': 'kids-special'},
 ]
 
 PRODUCTS = [
