@@ -73,7 +73,7 @@ after our team contacts you.
 
 Happy Diwali! 🎆
 — Team Lakshmi Crackers
-  📞 +91 98765 43210  |  ✉ info@lakshmicrackers.com
+  📞 +91 63748 01083  |  ✉ lakshmicrackersonline@gmail.com
     """.strip()
 
     # ── HTML body ──────────────────────────────────────────────────────────────
@@ -180,10 +180,10 @@ Happy Diwali! 🎆
               Happy Diwali! 🎆
             </p>
             <p style="margin:6px 0 0;color:#fca5a5;font-size:12px;">
-              📞 +91 98765 43210 &nbsp;|&nbsp; ✉ info@lakshmicrackers.com
+              📞 +91 63748 01083 &nbsp;|&nbsp; ✉ lakshmicrackersonline@gmail.com
             </p>
             <p style="margin:8px 0 0;color:#fca5a5;font-size:11px;">
-              No. 5, Sivakasi Main Road, Tamil Nadu
+              4/214, Near Enammeenatchipuram Bus Stop, Vembakottai, Sivakasi, TN - 626131
             </p>
           </td>
         </tr>
@@ -243,4 +243,195 @@ def send_order_status_update(order) -> bool:
         return True
     except Exception as exc:
         logger.warning('Failed to send status email for order #%s: %s', order.id, exc)
+        return False
+
+
+def send_admin_order_notification(order) -> bool:
+    """
+    Send an instant notification to the shop owner (lakshmicrackersonline@gmail.com)
+    every time a new order is placed.
+    Never crashes the request — failures are logged silently.
+    """
+    ADMIN_EMAIL = 'lakshmicrackersonline@gmail.com'
+    from_addr   = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@lakshmicrackers.com')
+    subject     = f'[NEW ORDER] #{order.id} — Rs.{float(order.total):.0f} from {order.name}'
+
+    # Build item lines
+    item_lines_txt = '\n'.join(
+        f'  {i+1}. {item.product_name} x{item.quantity}  =  Rs.{float(item.line_total):.0f}'
+        for i, item in enumerate(order.items.all())
+    )
+    item_lines_html = ''.join(
+        f'<tr style="background:{"#f9fafb" if i%2==0 else "#fff"}">'
+        f'<td style="padding:7px 12px;border-bottom:1px solid #e5e7eb;font-size:13px">{item.product_name}</td>'
+        f'<td style="padding:7px 12px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:13px;font-weight:700">x{item.quantity}</td>'
+        f'<td style="padding:7px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:13px;font-weight:700">Rs.{float(item.line_total):.0f}</td>'
+        f'</tr>'
+        for i, item in enumerate(order.items.all())
+    )
+
+    discount_txt  = (
+        f'\n  Discount ({order.coupon_code}): - Rs.{float(order.discount_amount):.0f}'
+        if order.discount_amount else ''
+    )
+    discount_html = (
+        f'<tr><td colspan="2" style="padding:6px 12px;font-size:12px;color:#15803d">Discount ({order.coupon_code})</td>'
+        f'<td style="padding:6px 12px;font-size:12px;color:#15803d;text-align:right">- Rs.{float(order.discount_amount):.0f}</td></tr>'
+        if order.discount_amount else ''
+    )
+
+    import datetime
+    order_time = order.created_at.strftime('%d %b %Y, %I:%M %p') if order.created_at else 'N/A'
+
+    plain_body = f"""
+NEW ORDER RECEIVED — Lakshmi Crackers
+======================================
+Order ID   : #{order.id}
+Time       : {order_time}
+--------------------------------------
+CUSTOMER
+  Name   : {order.name}
+  Phone  : {order.phone}
+  Email  : {order.email or 'Not provided'}
+--------------------------------------
+DELIVERY ADDRESS
+  {order.address}
+--------------------------------------
+ITEMS
+{item_lines_txt}{discount_txt}
+--------------------------------------
+  TOTAL  : Rs.{float(order.total):.0f}
+======================================
+Login to admin: https://www.lakshmicrackers.com/admin/orders
+""".strip()
+
+    html_body = f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"/></head>
+<body style="margin:0;padding:0;background:#f3f4f6;font-family:Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="padding:24px 16px;background:#f3f4f6">
+<tr><td align="center">
+<table width="580" cellpadding="0" cellspacing="0"
+       style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
+
+  <!-- Alert Header -->
+  <tr>
+    <td style="background:#1f2937;padding:20px 28px;display:flex;justify-content:space-between;align-items:center">
+      <table width="100%"><tr>
+        <td>
+          <div style="font-size:11px;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">New Order Received</div>
+          <div style="font-size:22px;font-weight:700;color:#fff">Order #{order.id}</div>
+          <div style="font-size:12px;color:#9ca3af;margin-top:4px">{order_time}</div>
+        </td>
+        <td style="text-align:right">
+          <div style="background:#16a34a;color:#fff;padding:6px 16px;border-radius:20px;
+                      font-size:12px;font-weight:700;display:inline-block">
+            Rs.{float(order.total):.0f}
+          </div>
+        </td>
+      </tr></table>
+    </td>
+  </tr>
+
+  <!-- Customer Info -->
+  <tr>
+    <td style="padding:20px 28px 0">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
+                  color:#6b7280;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:12px">
+        Customer Details
+      </div>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td style="width:50%;vertical-align:top;padding-right:16px">
+            <div style="font-size:11px;color:#9ca3af;margin-bottom:2px">Name</div>
+            <div style="font-size:14px;font-weight:700;color:#111;margin-bottom:10px">{order.name}</div>
+            <div style="font-size:11px;color:#9ca3af;margin-bottom:2px">Phone</div>
+            <div style="font-size:14px;font-weight:700;color:#111">{order.phone}</div>
+          </td>
+          <td style="width:50%;vertical-align:top;padding-left:16px;border-left:1px solid #e5e7eb">
+            <div style="font-size:11px;color:#9ca3af;margin-bottom:2px">Email</div>
+            <div style="font-size:13px;color:#111;margin-bottom:10px">{order.email or 'Not provided'}</div>
+            <div style="font-size:11px;color:#9ca3af;margin-bottom:2px">Delivery Address</div>
+            <div style="font-size:12px;color:#374151;line-height:1.6;white-space:pre-line">{order.address}</div>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <!-- Items Table -->
+  <tr>
+    <td style="padding:20px 28px 0">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
+                  color:#6b7280;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:12px">
+        Items Ordered
+      </div>
+      <table width="100%" cellpadding="0" cellspacing="0"
+             style="border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+        <thead>
+          <tr style="background:#1f2937">
+            <th style="padding:8px 12px;font-size:10px;text-align:left;color:#fff;
+                       text-transform:uppercase;letter-spacing:.5px">Product</th>
+            <th style="padding:8px 12px;font-size:10px;text-align:center;color:#fff;
+                       text-transform:uppercase;letter-spacing:.5px">Qty</th>
+            <th style="padding:8px 12px;font-size:10px;text-align:right;color:#fff;
+                       text-transform:uppercase;letter-spacing:.5px">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          {item_lines_html}
+          {discount_html}
+          <tr style="background:#f9fafb">
+            <td colspan="2" style="padding:10px 12px;font-weight:700;font-size:14px;color:#111">Total</td>
+            <td style="padding:10px 12px;font-weight:700;font-size:16px;color:#111;text-align:right">
+              Rs.{float(order.total):.0f}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </td>
+  </tr>
+
+  <!-- CTA -->
+  <tr>
+    <td style="padding:20px 28px 24px;text-align:center">
+      <a href="https://www.lakshmicrackers.com/admin/orders"
+         style="display:inline-block;background:#b91c1c;color:#fff;padding:12px 28px;
+                border-radius:8px;font-weight:700;font-size:13px;text-decoration:none;
+                letter-spacing:.3px">
+        View Order in Admin Panel
+      </a>
+      <p style="margin:12px 0 0;font-size:11px;color:#9ca3af">
+        Call customer: <strong style="color:#111">{order.phone}</strong> to confirm payment
+      </p>
+    </td>
+  </tr>
+
+  <!-- Footer -->
+  <tr>
+    <td style="background:#f9fafb;padding:14px 28px;text-align:center;
+               border-top:1px solid #e5e7eb">
+      <div style="font-size:11px;color:#9ca3af">
+        Lakshmi Crackers Admin Notification &nbsp;|&nbsp; lakshmicrackersonline@gmail.com
+      </div>
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>"""
+
+    try:
+        msg = EmailMultiAlternatives(subject, plain_body, from_addr, [ADMIN_EMAIL])
+        msg.attach_alternative(html_body, 'text/html')
+        msg.send(fail_silently=False)
+        logger.info('Admin notification sent to %s for order #%s', ADMIN_EMAIL, order.id)
+        return True
+    except Exception as exc:
+        logger.warning(
+            'Failed to send admin notification for order #%s: %s',
+            order.id, exc
+        )
         return False

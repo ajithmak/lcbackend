@@ -24,7 +24,7 @@ from .serializers import (
     CouponSerializer,
     CouponValidateSerializer,
 )
-from .email import send_order_confirmation
+from .email import send_order_confirmation, send_admin_order_notification
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,10 @@ class PlaceOrderView(SuccessResponseMixin, APIView):
             from rest_framework.exceptions import ValidationError
             raise ValidationError('Could not complete order due to a data conflict. Please retry.')
 
+        # Notify customer
         send_order_confirmation(order)
+        # Notify shop owner — instant alert to lakshmicrackersonline@gmail.com
+        send_admin_order_notification(order)
         logger.info('Order #%s placed by %s', order.id, order.email)
         return self.created(
             data={
