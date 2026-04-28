@@ -142,11 +142,20 @@ class ProductListView(PaginatedResponseMixin, generics.ListAPIView):
         # Build a unique cache key from all query params
         params    = dict(sorted(request.query_params.items()))
         cache_key = 'products_list_' + '_'.join(f'{k}_{v}' for k, v in params.items())
-        cached    = cache.get(cache_key)
-        if cached is not None:
-            return cached
+
+        # Cache the DATA (plain dict/list) — never cache the Response object
+        # Response objects cannot be pickled (serialized) by Django's cache backend
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            from rest_framework.response import Response as DRFResponse
+            return DRFResponse(cached_data)
+
         response = super().list(request, *args, **kwargs)
-        cache.set(cache_key, response, 300)  # cache 5 minutes
+        # response.data is a plain OrderedDict — safe to pickle and cache
+        try:
+            cache.set(cache_key, response.data, 300)  # cache 5 minutes
+        except Exception:
+            pass  # never crash if caching fails
         return response
 
 
