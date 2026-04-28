@@ -176,6 +176,21 @@ else:
     DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 
 # ─── Email ────────────────────────────────────────────────────────────────────
+# ─── Cache — in-memory cache for product listings ───────────────────────────
+# Products list is cached for 5 minutes — reduces DB queries significantly.
+# Cache is automatically cleared when products are updated via admin.
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'lakshmi-crackers-cache',
+        'TIMEOUT': 300,  # 5 minutes
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+        }
+    }
+}
+CACHE_MIDDLEWARE_SECONDS = 300
+
 # ─── Email — Gmail SMTP ─────────────────────────────────────────────────────
 # Required Render environment variables:
 #   EMAIL_HOST_USER     = lakshmicrackersonline@gmail.com

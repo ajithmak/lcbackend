@@ -7,6 +7,8 @@ import csv
 import io
 
 from rest_framework import generics, filters
+from django.core.cache import cache
+from django.utils.cache import get_cache_key
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -48,7 +50,7 @@ def _parse_price(request, param):
 class CategoryListView(PaginatedResponseMixin, generics.ListAPIView):
     serializer_class   = CategorySerializer
     permission_classes = [AllowAny]
-    queryset           = Category.objects.filter(is_active=True)
+    queryset           = Category.objects.filter(is_active=True).order_by('name')
 
 
 class CategoryAdminListCreateView(
@@ -98,7 +100,7 @@ class CategoryAdminDetailView(
 # ── Public product views ────────────────────────────────────────────────────────
 
 class ProductListView(PaginatedResponseMixin, generics.ListAPIView):
-    """GET /api/v1/products/ — with filters"""
+    """GET /api/v1/products/ — with filters + 5-minute cache per unique query"""
     serializer_class   = ProductListSerializer
     permission_classes = [AllowAny]
     filter_backends    = [filters.SearchFilter, filters.OrderingFilter]
@@ -107,7 +109,7 @@ class ProductListView(PaginatedResponseMixin, generics.ListAPIView):
     ordering           = ['-created_at']
 
     def get_queryset(self):
-        qs = Product.objects.filter(is_active=True)
+        qs = Product.objects.filter(is_active=True).select_related('category')
 
         category_slug = self.request.query_params.get('category')
         if category_slug:
@@ -136,6 +138,17 @@ class ProductListView(PaginatedResponseMixin, generics.ListAPIView):
 
         return qs
 
+    def list(self, request, *args, **kwargs):
+        # Build a unique cache key from all query params
+        params    = dict(sorted(request.query_params.items()))
+        cache_key = 'products_list_' + '_'.join(f'{k}_{v}' for k, v in params.items())
+        cached    = cache.get(cache_key)
+        if cached is not None:
+            return cached
+        response = super().list(request, *args, **kwargs)
+        cache.set(cache_key, response, 300)  # cache 5 minutes
+        return response
+
 
 class ProductDetailView(SuccessResponseMixin, APIView):
     """GET /api/v1/products/<slug>/"""
@@ -160,6 +173,7 @@ class FeaturedProductsView(PaginatedResponseMixin, generics.ListAPIView):
         return (
             Product.objects
             .filter(is_active=True, is_featured=True, stock__gt=0)
+            .select_related('category')
             .order_by('-created_at')
         )
 
@@ -197,6 +211,8 @@ class AdminProductListCreateView(
         s = self.get_serializer(data=request.data)
         s.is_valid(raise_exception=True)
         product = s.save()
+        # Clear product list cache so new product appears immediately
+        cache.clear()
         logger.info('Admin %s created product: %s', request.user.email, product.name)
         return self.created(s.data, message=f'Product "{product.name}" created.')
 
@@ -215,6 +231,8 @@ class AdminProductDetailView(
         s       = self.get_serializer(obj, data=request.data, partial=partial)
         s.is_valid(raise_exception=True)
         product = s.save()
+        # Clear product list cache so changes appear immediately
+        cache.clear()
         logger.info('Admin %s updated product id=%s', request.user.email, product.id)
         return self.ok(s.data, message=f'Product "{product.name}" updated.')
 
