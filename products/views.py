@@ -201,7 +201,7 @@ class AdminProductListCreateView(
     ordering           = ['-created_at']
 
     def get_queryset(self):
-        qs = Product.objects.all()
+        qs = Product.objects.all().select_related('category').order_by('name')
         p  = self.request.query_params.get('is_active')
         if p == 'true':
             qs = qs.filter(is_active=True)
