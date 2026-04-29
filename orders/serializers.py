@@ -136,7 +136,7 @@ class OrderCreateSerializer(serializers.Serializer):
     email       = serializers.EmailField()
     phone       = serializers.CharField()
     address     = serializers.CharField()
-    items       = serializers.ListField(child=serializers.DictField(), min_length=1, max_length=50)
+    items       = serializers.ListField(child=serializers.DictField(), min_length=1, max_length=250)
     coupon_code = serializers.CharField(required=False, allow_blank=True, default='')
 
     def validate_name(self, value):
