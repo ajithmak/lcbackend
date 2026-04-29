@@ -246,13 +246,61 @@ class AdminProductDetailView(
         return self.ok(s.data, message=f'Product "{product.name}" updated.')
 
     def destroy(self, request, *args, **kwargs):
-        obj           = self.get_object()
+        obj       = self.get_object()
+        permanent = request.query_params.get('permanent', 'false').lower() == 'true'
+        if permanent:
+            name = obj.name
+            obj.delete()
+            logger.info('Admin %s permanently deleted product id=%s', request.user.email, obj.id)
+            return self.deleted(f'Product "{name}" permanently deleted.')
         obj.is_active = False
         obj.save(update_fields=['is_active', 'updated_at'])
         logger.info('Admin %s deactivated product id=%s', request.user.email, obj.id)
         return self.deleted(f'Product "{obj.name}" deactivated.')
 
 
+
+
+class AdminProductBulkActionView(SuccessResponseMixin, APIView):
+    """
+    POST /api/v1/products/admin/bulk/
+    Body: { "ids": [1,2,3], "action": "delete"|"deactivate"|"activate"|"feature"|"unfeature" }
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request):
+        ids    = request.data.get('ids', [])
+        action = request.data.get('action', '').strip().lower()
+
+        if not ids or not isinstance(ids, list):
+            return Response({'error': 'Provide a list of product IDs.'}, status=400)
+        if action not in ('delete', 'deactivate', 'activate', 'feature', 'unfeature'):
+            return Response({'error': f'Unknown action "{action}".'}, status=400)
+
+        qs = Product.objects.filter(id__in=ids)
+        if not qs.exists():
+            return Response({'error': 'No matching products found.'}, status=404)
+
+        count = qs.count()
+        if action == 'delete':
+            qs.delete()
+            msg = f'{count} product(s) permanently deleted.'
+        elif action == 'deactivate':
+            qs.update(is_active=False)
+            msg = f'{count} product(s) deactivated.'
+        elif action == 'activate':
+            qs.update(is_active=True)
+            msg = f'{count} product(s) activated.'
+        elif action == 'feature':
+            qs.update(is_featured=True)
+            msg = f'{count} product(s) marked as featured.'
+        elif action == 'unfeature':
+            qs.update(is_featured=False)
+            msg = f'{count} product(s) removed from featured.'
+
+        logger.info('Admin %s bulk %s on %d products: %s',
+                    request.user.email, action, count, ids)
+        return self.ok({'affected': count}, message=msg)
 class AdminStockUpdateView(SuccessResponseMixin, APIView):
     """PATCH /api/v1/products/admin/<pk>/stock/"""
     permission_classes = [IsAuthenticated, IsAdminUser]

@@ -14,6 +14,7 @@ urlpatterns = [
     # Admin — BEFORE <slug:slug>/ catch-all
     path('admin/',                     views.AdminProductListCreateView.as_view(),  name='admin-product-list'),
     path('admin/<int:pk>/',            views.AdminProductDetailView.as_view(),      name='admin-product-detail'),
+    path('admin/bulk/',                views.AdminProductBulkActionView.as_view(),  name='admin-product-bulk'),
     path('admin/<int:pk>/stock/',      views.AdminStockUpdateView.as_view(),        name='admin-stock-update'),
     path('admin/import/',              views.AdminProductImportView.as_view(),     name='admin-product-import'),
     path('admin/categories/',          views.CategoryAdminListCreateView.as_view(), name='admin-category-list'),

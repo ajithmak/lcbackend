@@ -180,6 +180,39 @@ class AdminOrderUpdateView(SuccessResponseMixin, APIView):
         )
 
 
+
+
+class AdminOrderBulkActionView(SuccessResponseMixin, APIView):
+    """
+    POST /api/v1/orders/admin/bulk/
+    Body: { "ids": [1,2,3], "action": "delete"|"pending"|"confirmed"|"processing"|"shipped"|"delivered"|"cancelled" }
+    """
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request):
+        ids    = request.data.get('ids', [])
+        action = request.data.get('action', '').strip().lower()
+        valid  = ('delete','pending','confirmed','processing','shipped','delivered','cancelled')
+
+        if not ids or not isinstance(ids, list):
+            return Response({'error': 'Provide a list of order IDs.'}, status=400)
+        if action not in valid:
+            return Response({'error': f'Unknown action "{action}".'}, status=400)
+
+        qs    = Order.objects.filter(id__in=ids)
+        count = qs.count()
+        if not count:
+            return Response({'error': 'No matching orders found.'}, status=404)
+
+        if action == 'delete':
+            qs.delete()
+            msg = f'{count} order(s) permanently deleted.'
+        else:
+            qs.update(status=action)
+            msg = f'{count} order(s) status updated to "{action}".'
+
+        logger.info('Admin %s bulk %s on %d orders', request.user.email, action, count)
+        return self.ok({'affected': count}, message=msg)
 class AdminCouponListCreateView(SuccessResponseMixin, PaginatedResponseMixin, generics.ListCreateAPIView):
     """GET/POST /api/v1/orders/admin/coupons/"""
     serializer_class   = CouponSerializer
