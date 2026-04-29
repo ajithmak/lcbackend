@@ -24,7 +24,6 @@ from .serializers import (
     CouponSerializer,
     CouponValidateSerializer,
 )
-from .email import send_order_confirmation, send_admin_order_notification
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +44,6 @@ class PlaceOrderView(SuccessResponseMixin, APIView):
             from rest_framework.exceptions import ValidationError
             raise ValidationError('Could not complete order due to a data conflict. Please retry.')
 
-        # Send emails in background thread — don't block the order response
-        import threading
-        def send_emails():
-            send_order_confirmation(order)
-            send_admin_order_notification(order)
-        threading.Thread(target=send_emails, daemon=True).start()
         logger.info('Order #%s placed by %s', order.id, order.email)
         return self.created(
             data={

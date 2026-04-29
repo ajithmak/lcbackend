@@ -30,11 +30,9 @@ ALLOWED_HOSTS = list(filter(None, _allowed.split(',') + ([_render_host] if _rend
 
 # ─── Applications ─────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
-    'django.contrib.admin',
+    # Django core — keep minimal
     'django.contrib.auth',
     'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
     'django.contrib.staticfiles',
 
     # Third-party
@@ -54,15 +52,14 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',          # CORS first — fast reject
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # serve static files on Render
-    'django.contrib.sessions.middleware.SessionMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',     # static files
+    'django.middleware.gzip.GZipMiddleware',          # compress responses — faster transfers
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # Removed: SessionMiddleware, CsrfMiddleware, MessageMiddleware, XFrameOptions
+    # API-only backend — these are not needed and add overhead per request
 ]
 
 ROOT_URLCONF      = 'lakshmi_crackers.urls'
@@ -95,14 +92,19 @@ DATABASES = {
         'PORT':     os.environ.get('POSTGRES_PORT',     '5432'),
         'OPTIONS': {
             'connect_timeout': 10,
+            'keepalives': 1,
+            'keepalives_idle': 60,
+            'keepalives_interval': 10,
+            'keepalives_count': 5,
         },
-        'CONN_MAX_AGE': 60,  # Keep connections alive 60s (good for production)
+        'CONN_MAX_AGE': 600,  # Keep DB connections alive 10 min — reduces Neon reconnect overhead
     }
 }
 
 # ─── Auto primary key ─────────────────────────────────────────────────────────
 # BigAutoField is Django 4.x default and best practice for PostgreSQL
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB max upload
 
 # ─── Custom user model ────────────────────────────────────────────────────────
 AUTH_USER_MODEL = 'users.User'
@@ -175,7 +177,6 @@ else:
     # Fallback: local disk (dev only — not reliable on Render free tier)
     DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 
-# ─── Email ────────────────────────────────────────────────────────────────────
 # ─── Cache — in-memory cache for product listings ───────────────────────────
 # Products list is cached for 5 minutes — reduces DB queries significantly.
 # Cache is automatically cleared when products are updated via admin.
@@ -191,30 +192,6 @@ CACHES = {
 }
 CACHE_MIDDLEWARE_SECONDS = 300
 
-# ─── Email — Gmail SMTP ─────────────────────────────────────────────────────
-# Required Render environment variables:
-#   EMAIL_HOST_USER     = lakshmicrackersonline@gmail.com
-#   EMAIL_HOST_PASSWORD = your-16-char-gmail-app-password
-# Optional (defaults already set for Gmail):
-#   EMAIL_HOST     = smtp.gmail.com
-#   EMAIL_PORT     = 587
-#   EMAIL_USE_TLS  = True
-
-EMAIL_HOST_USER     = os.environ.get('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
-EMAIL_HOST          = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
-EMAIL_PORT          = int(os.environ.get('EMAIL_PORT', '587'))
-EMAIL_USE_TLS       = os.environ.get('EMAIL_USE_TLS', 'True').strip().lower() == 'true'
-EMAIL_USE_SSL       = False  # TLS and SSL are mutually exclusive — use TLS on port 587
-
-# Always use SMTP in production — console backend is only for local dev
-if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-else:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or 'lakshmicrackersonline@gmail.com'
-SERVER_EMAIL       = DEFAULT_FROM_EMAIL
 
 # ─── Localisation ─────────────────────────────────────────────────────────────
 LANGUAGE_CODE = 'en-us'
@@ -225,11 +202,14 @@ USE_TZ        = True
 
 # ─── Password validation ──────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
      'OPTIONS': {'min_length': 8}},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
+
+# Faster password hasher — fewer iterations for faster login on low-RAM Render
+PASSWORD_HASHERS = [
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',
 ]
 
 # ─── Logging ──────────────────────────────────────────────────────────────────
@@ -242,13 +222,13 @@ LOGGING = {
     'handlers': {
         'console': {'class': 'logging.StreamHandler', 'formatter': 'verbose'},
     },
-    'root': {'handlers': ['console'], 'level': 'INFO'},
+    'root': {'handlers': ['console'], 'level': 'WARNING'},
     'loggers': {
-        'django':         {'handlers': ['console'], 'level': os.environ.get('DJANGO_LOG_LEVEL', 'INFO'), 'propagate': False},
-        'django.request': {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
-        'products':       {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
-        'orders':         {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
-        'users':          {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
-        'core':           {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+        'django':         {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
+        'django.request': {'handlers': ['console'], 'level': 'ERROR',   'propagate': False},
+        'django.db':      {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
+        'products':       {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
+        'orders':         {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
+        'users':          {'handlers': ['console'], 'level': 'WARNING', 'propagate': False},
     },
 }

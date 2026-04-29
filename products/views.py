@@ -8,7 +8,6 @@ import io
 
 from rest_framework import generics, filters
 from django.core.cache import cache
-from django.utils.cache import get_cache_key
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -51,6 +50,18 @@ class CategoryListView(PaginatedResponseMixin, generics.ListAPIView):
     serializer_class   = CategorySerializer
     permission_classes = [AllowAny]
     queryset           = Category.objects.filter(is_active=True).order_by('name')
+
+    def list(self, request, *args, **kwargs):
+        cached = cache.get('categories_list')
+        if cached is not None:
+            from rest_framework.response import Response as DRFResponse
+            return DRFResponse(cached)
+        response = super().list(request, *args, **kwargs)
+        try:
+            cache.set('categories_list', response.data, 3600)  # 1 hour — categories rarely change
+        except Exception:
+            pass
+        return response
 
 
 class CategoryAdminListCreateView(
@@ -153,7 +164,7 @@ class ProductListView(PaginatedResponseMixin, generics.ListAPIView):
         response = super().list(request, *args, **kwargs)
         # response.data is a plain OrderedDict — safe to pickle and cache
         try:
-            cache.set(cache_key, response.data, 300)  # cache 5 minutes
+            cache.set(cache_key, response.data, 600)  # cache 10 minutes
         except Exception:
             pass  # never crash if caching fails
         return response
@@ -174,7 +185,7 @@ class ProductDetailView(SuccessResponseMixin, APIView):
 
 
 class FeaturedProductsView(PaginatedResponseMixin, generics.ListAPIView):
-    """GET /api/v1/products/featured/"""
+    """GET /api/v1/products/featured/ — cached 10 min"""
     serializer_class   = ProductListSerializer
     permission_classes = [AllowAny]
 
@@ -185,6 +196,18 @@ class FeaturedProductsView(PaginatedResponseMixin, generics.ListAPIView):
             .select_related('category')
             .order_by('-created_at')
         )
+
+    def list(self, request, *args, **kwargs):
+        cached = cache.get('featured_products')
+        if cached is not None:
+            from rest_framework.response import Response as DRFResponse
+            return DRFResponse(cached)
+        response = super().list(request, *args, **kwargs)
+        try:
+            cache.set('featured_products', response.data, 600)
+        except Exception:
+            pass
+        return response
 
 
 # ── Admin product views ─────────────────────────────────────────────────────────
@@ -240,7 +263,7 @@ class AdminProductDetailView(
         s       = self.get_serializer(obj, data=request.data, partial=partial)
         s.is_valid(raise_exception=True)
         product = s.save()
-        # Clear product list cache so changes appear immediately
+        # Clear all product caches so changes appear immediately
         cache.clear()
         logger.info('Admin %s updated product id=%s', request.user.email, product.id)
         return self.ok(s.data, message=f'Product "{product.name}" updated.')
