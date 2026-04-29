@@ -30,9 +30,10 @@ ALLOWED_HOSTS = list(filter(None, _allowed.split(',') + ([_render_host] if _rend
 
 # ─── Applications ─────────────────────────────────────────────────────────────
 INSTALLED_APPS = [
-    # Django core — keep minimal
+    # Django core
     'django.contrib.auth',
     'django.contrib.contenttypes',
+    'django.contrib.sessions',
     'django.contrib.staticfiles',
 
     # Third-party
@@ -52,14 +53,13 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',          # CORS first — fast reject
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',     # static files
-    'django.middleware.gzip.GZipMiddleware',          # compress responses — faster transfers
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'django.middleware.gzip.GZipMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    # Removed: SessionMiddleware, CsrfMiddleware, MessageMiddleware, XFrameOptions
-    # API-only backend — these are not needed and add overhead per request
 ]
 
 ROOT_URLCONF      = 'lakshmi_crackers.urls'
